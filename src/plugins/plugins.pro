@@ -3,6 +3,7 @@ SUBDIRS = csv \
           defold \
           droidcraft \
           flare \
+          gmaptext \
           gmx \
           json \
           lua \

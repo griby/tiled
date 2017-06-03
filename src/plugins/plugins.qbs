@@ -6,6 +6,7 @@ Project {
         "defold",
         "droidcraft",
         "flare",
+        "gmaptext",
         "json",
         "lua",
         "python",
