@@ -20,9 +20,9 @@
 
 #pragma once
 
-#include "mapformat.h"
-
 #include "gmaptext_global.h"
+
+#include "mapformat.h"
 
 namespace GMapText {
 
@@ -35,13 +35,12 @@ public:
     GMapTextPlugin();
 
     bool write(const Tiled::Map *map, const QString &fileName) override;
-    QString errorString() const override;
+
     QStringList outputFiles(const Tiled::Map *map, const QString &fileName) const override;
 
-    QString shortName() const override;
-
-protected:
     QString nameFilter() const override;
+    QString shortName() const override;
+    QString errorString() const override;
 
 private:
     QString mError;

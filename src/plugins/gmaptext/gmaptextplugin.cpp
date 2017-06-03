@@ -91,11 +91,6 @@ bool GMapTextPlugin::write(const Map *map, const QString &fileName)
     return true;
 }
 
-QString GMapTextPlugin::errorString() const
-{
-    return mError;
-}
-
 QStringList GMapTextPlugin::outputFiles(const Tiled::Map *map, const QString &fileName) const
 {
     QStringList result;
@@ -134,4 +129,9 @@ QString GMapTextPlugin::nameFilter() const
 QString GMapTextPlugin::shortName() const
 {
     return QLatin1String("gmaptext");
+}
+
+QString GMapTextPlugin::errorString() const
+{
+    return mError;
 }
