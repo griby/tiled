@@ -20,13 +20,8 @@
 
 #include "gmaptextplugin.h"
 
-#include "map.h"
-#include "savefile.h"
 #include "tile.h"
-#include "tilelayer.h"
-
-#include <QDir>
-#include <QFileInfo>
+#include "mapobject.h"
 
 using namespace Tiled;
 using namespace GMapText;
@@ -39,61 +34,89 @@ bool GMapTextPlugin::write(const Map *map, const QString &fileName)
 {
     SaveFile file(fileName);
 
-    // Open the exported file
+    // Open the file
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         mError = tr("Could not open file for writing.");
         return false;
     }
 
-    auto device = file.device();
+    auto fileDevice = file.device();
 
-    // Go through all the tile layers
-    uint currentLayer = 1;
-    for (const Layer *layer : map->layers()) {
+    // Write the map
+    writeMap(map, fileDevice);
 
-        // Ignore other layer types
-        if (layer->layerType() != Layer::TileLayerType)
-            continue;
-
-        const TileLayer *tileLayer = static_cast<const TileLayer*>(layer);
-
-        // Write out the layer ID
-        QString layerName = QString("Layer #%1\n").arg(currentLayer);
-        device->write(layerName.toLatin1().constData());
-
-        // Write out tiles either by ID or their name, if given. -1 is "empty"
-        for (int y = 0; y < tileLayer->height(); ++y) {
-            for (int x = 0; x < tileLayer->width(); ++x) {
-
-                // Separate tile IDs with a single space
-                if (x > 0)
-                    device->write(" ", 1);
-    
-                const Cell &cell = tileLayer->cellAt(x, y);
-                const Tile *tile = cell.tile();
-                const int id = tile ? tile->id() : -1;
-                device->write(QByteArray::number(id));
-            }
-
-            device->write("\n", 1);
-        }
-
-        device->write("\n", 1);
-
-        ++currentLayer;
-    }
-
+    // Check for errors
     if (file.error() != QFileDevice::NoError) {
         mError = file.errorString();
         return false;
     }
 
+    // Save the file
     if (!file.commit()) {
         mError = file.errorString();
         return false;
     }
 
     return true;
+}
+
+void GMapTextPlugin::writeMap(const Map *map, QFileDevice *fileDevice)
+{
+    // TODO Write the map properties
+
+    // Write the tile layers
+    for (int i = 0; i < map->tileLayers().count(); ++i) {
+        if (i > 0)
+            fileDevice->write("\n", 1);
+
+        const TileLayer *tileLayer = map->tileLayers().at(i);
+        writeTileLayer(tileLayer, fileDevice);
+    }
+
+    // Write the object groups
+    for (int i = 0; i < map->objectGroups().count(); ++i) {
+        if (i > 0 || !map->tileLayers().empty())
+            fileDevice->write("\n", 1);
+
+        const ObjectGroup *objectGroup = map->objectGroups().at(i);
+        writeObjectGroup(objectGroup, fileDevice);
+    }
+}
+
+void GMapTextPlugin::writeTileLayer(const TileLayer *tileLayer, QFileDevice *fileDevice)
+{
+    // TODO Write the tile layer properties
+
+    // Write the tiles
+    for (int y = 0; y < tileLayer->height(); ++y) {
+        for (int x = 0; x < tileLayer->width(); ++x) {
+            if (x > 0)
+                fileDevice->write(" ", 1);
+
+            // Write the tile ID or -1 if it's empty
+            const Cell &cell = tileLayer->cellAt(x, y);
+            const Tile *tile = cell.tile();
+            const int id = tile ? tile->id() : -1;
+            fileDevice->write(QByteArray::number(id));
+
+            // TODO Write the tile properties
+        }
+
+        fileDevice->write("\n", 1);
+    }
+}
+
+void GMapTextPlugin::writeObjectGroup(const ObjectGroup *objectGroup, QFileDevice *fileDevice)
+{
+    // TODO Write the object group properties
+
+    // Write the objects
+    for (const MapObject *object : objectGroup->objects()) {
+        QString objectName = QString("ObjectName %1\n").arg(object->name());
+        fileDevice->write(objectName.toLatin1().constData());
+
+        // TODO Write the object properties
+    }
 }
 
 QString GMapTextPlugin::nameFilter() const

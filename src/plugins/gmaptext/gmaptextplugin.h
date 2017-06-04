@@ -23,6 +23,10 @@
 #include "gmaptext_global.h"
 
 #include "mapformat.h"
+#include "tilelayer.h"
+#include "objectgroup.h"
+
+#include "savefile.h"
 
 namespace GMapText {
 
@@ -41,6 +45,10 @@ public:
     QString errorString() const override;
 
 private:
+    void writeMap(const Tiled::Map *map, QFileDevice *fileDevice);
+    void writeTileLayer(const Tiled::TileLayer *tileLayer, QFileDevice *fileDevice);
+    void writeObjectGroup(const Tiled::ObjectGroup *objectGroup, QFileDevice *fileDevice);
+
     QString mError;
 };
 
