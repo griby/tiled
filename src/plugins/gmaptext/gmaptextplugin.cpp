@@ -23,6 +23,8 @@
 #include "tile.h"
 #include "mapobject.h"
 
+#include <QFileInfo>
+
 using namespace Tiled;
 using namespace GMapText;
 
@@ -43,7 +45,9 @@ bool GMapTextPlugin::write(const Map *map, const QString &fileName)
     auto fileDevice = file.device();
 
     // Write the map
-    writeMap(map, fileDevice);
+    QFileInfo fileInfo(fileName);
+    QString mapName = fileInfo.baseName();
+    writeMap(map, mapName, fileDevice);
 
     // Check for errors
     if (file.error() != QFileDevice::NoError) {
@@ -60,55 +64,45 @@ bool GMapTextPlugin::write(const Map *map, const QString &fileName)
     return true;
 }
 
-void GMapTextPlugin::writeMap(const Map *map, QFileDevice *fileDevice)
+void GMapTextPlugin::writeMap(const Map *map, const QString &mapName, QFileDevice *fileDevice)
 {
+    // Write the map header comment
+    QString mapHeader = QString("# Map %1\n")
+            .arg(mapName);
+    fileDevice->write(mapHeader.toLatin1());
+
     // Write the map properties
-    fileDevice->write("# Map properties\n");
-    QString mapSize =
-            QString("Size %1 %2\n")
-            .arg(QString::number(map->width()), QString::number(map->height()));
-    fileDevice->write(mapSize.toLatin1().constData());
+    Tileset *tileset = nullptr;
+    if (!map->tilesets().empty())
+        tileset = map->tilesetAt(0).data();
 
-    QString tileSize =
-            QString("TileSize %1 %2\n")
-            .arg(QString::number(map->tileWidth()), QString::number(map->tileHeight()));
-    fileDevice->write(tileSize.toLatin1().constData());
-
-    if (!map->tilesets().empty()) {
-        Tileset *tileset = map->tilesetAt(0).data();
-        QString tilesetName = QString("Tileset %1\n").arg(tileset->name());
-        fileDevice->write(tilesetName.toLatin1().constData());
-    }
-
-    fileDevice->write("\n", 1);
+    QString mapProperties = QString("%1 %2 %3 %4 %5\n")
+            .arg(tileset->name())
+            .arg(QString::number(map->width()))
+            .arg(QString::number(map->height()))
+            .arg(QString::number(map->tileWidth()))
+            .arg(QString::number(map->tileHeight()));
+    fileDevice->write(mapProperties.toLatin1());
 
     // Write the tile layers
-    for (int i = 0; i < map->tileLayers().count(); ++i) {
-        if (i > 0)
-            fileDevice->write("\n", 1);
-
-        const TileLayer *tileLayer = map->tileLayers().at(i);
+    for (const TileLayer *tileLayer : map->tileLayers()) {
+        fileDevice->write("\n", 1);
         writeTileLayer(tileLayer, fileDevice);
     }
 
     // Write the object groups
-    for (int i = 0; i < map->objectGroups().count(); ++i) {
-        if (i > 0 || !map->tileLayers().empty())
-            fileDevice->write("\n", 1);
-
-        const ObjectGroup *objectGroup = map->objectGroups().at(i);
+    for (const ObjectGroup *objectGroup : map->objectGroups()) {
+        fileDevice->write("\n", 1);
         writeObjectGroup(objectGroup, fileDevice);
     }
 }
 
 void GMapTextPlugin::writeTileLayer(const TileLayer *tileLayer, QFileDevice *fileDevice)
 {
-    // Write the tile layer properties
-    fileDevice->write("# TileLayer properties\n");
-    QString tileLayerName = QString("Name %1\n").arg(tileLayer->name());
-    fileDevice->write(tileLayerName.toLatin1().constData());
-
-    fileDevice->write("\n", 1);
+    // Write the tile layer header comment
+    QString tileLayerHeader = QString("# TileLayer %1\n")
+            .arg(tileLayer->name());
+    fileDevice->write(tileLayerHeader.toLatin1());
 
     // Write the tiles
     for (int y = 0; y < tileLayer->height(); ++y) {
@@ -129,19 +123,13 @@ void GMapTextPlugin::writeTileLayer(const TileLayer *tileLayer, QFileDevice *fil
 
 void GMapTextPlugin::writeObjectGroup(const ObjectGroup *objectGroup, QFileDevice *fileDevice)
 {
-    // Write the object group properties
-    fileDevice->write("# ObjectGroup properties\n");
-    QString objectGroupName = QString("Name %1\n").arg(objectGroup->name());
-    fileDevice->write(objectGroupName.toLatin1().constData());
-
-    fileDevice->write("\n", 1);
+    // Write the object group header comment
+    QString objectGroupHeader = QString("# ObjectGroup %1\n")
+            .arg(objectGroup->name());
+    fileDevice->write(objectGroupHeader.toLatin1());
 
     // Write the objects
-    for (int i = 0; i < objectGroup->objects().count(); ++i) {
-        if (i > 0)
-            fileDevice->write("\n", 1);
-
-        const MapObject *object = objectGroup->objectAt(i);
+    for (const MapObject *object : objectGroup->objects()) {
         writeObject(object, fileDevice);
     }
 }
@@ -149,24 +137,26 @@ void GMapTextPlugin::writeObjectGroup(const ObjectGroup *objectGroup, QFileDevic
 void GMapTextPlugin::writeObject(const MapObject *object, QFileDevice *fileDevice)
 {
     // Write the object properties
-    fileDevice->write("# Object properties\n");
-    QString objectName = QString("Name %1\n").arg(object->name());
-    fileDevice->write(objectName.toLatin1().constData());
+    QString objectProperties = QString("%1 %2 %3 %4 %5 %6")
+            .arg(object->name())
+            .arg(object->type())
+            .arg(QString::number(object->x()))
+            .arg(QString::number(object->y()))
+            .arg(QString::number(object->width()))
+            .arg(QString::number(object->height()));
+    fileDevice->write(objectProperties.toLatin1());
 
-    QString objectType = QString("Type %1\n").arg(object->type());
-    fileDevice->write(objectType.toLatin1().constData());
+    // Write the custom properties
+    Properties customProperties = object->properties();
+    Properties::const_iterator it = customProperties.constBegin();
+    for (; it != customProperties.constEnd(); ++it) {
+        QString customProperty = QString(" %1 %2")
+                .arg(it.key())
+                .arg(it.value().toString());
+        fileDevice->write(customProperty.toLatin1());
+    }
 
-    QString objectPosition =
-            QString("Position %1 %2\n")
-            .arg(QString::number(object->x()), QString::number(object->y()));
-    fileDevice->write(objectPosition.toLatin1().constData());
-
-    QString objectSize =
-            QString("Size %1 %2\n")
-            .arg(QString::number(object->width()), QString::number(object->height()));
-    fileDevice->write(objectSize.toLatin1().constData());
-
-    // TODO Write the custom properties
+    fileDevice->write("\n", 1);
 }
 
 QString GMapTextPlugin::nameFilter() const

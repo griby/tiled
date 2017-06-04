@@ -45,7 +45,7 @@ public:
     QString errorString() const override;
 
 private:
-    void writeMap(const Tiled::Map *map, QFileDevice *fileDevice);
+    void writeMap(const Tiled::Map *map, const QString &mapName, QFileDevice *fileDevice);
     void writeTileLayer(const Tiled::TileLayer *tileLayer, QFileDevice *fileDevice);
     void writeObjectGroup(const Tiled::ObjectGroup *objectGroup, QFileDevice *fileDevice);
     void writeObject(const Tiled::MapObject *object, QFileDevice *fileDevice);
