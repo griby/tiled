@@ -62,7 +62,25 @@ bool GMapTextPlugin::write(const Map *map, const QString &fileName)
 
 void GMapTextPlugin::writeMap(const Map *map, QFileDevice *fileDevice)
 {
-    // TODO Write the map properties
+    // Write the map properties
+    fileDevice->write("# Map properties\n");
+    QString mapSize =
+            QString("Size %1 %2\n")
+            .arg(QString::number(map->width()), QString::number(map->height()));
+    fileDevice->write(mapSize.toLatin1().constData());
+
+    QString tileSize =
+            QString("TileSize %1 %2\n")
+            .arg(QString::number(map->tileWidth()), QString::number(map->tileHeight()));
+    fileDevice->write(tileSize.toLatin1().constData());
+
+    if (!map->tilesets().empty()) {
+        Tileset *tileset = map->tilesetAt(0).data();
+        QString tilesetName = QString("Tileset %1\n").arg(tileset->name());
+        fileDevice->write(tilesetName.toLatin1().constData());
+    }
+
+    fileDevice->write("\n", 1);
 
     // Write the tile layers
     for (int i = 0; i < map->tileLayers().count(); ++i) {
@@ -85,7 +103,12 @@ void GMapTextPlugin::writeMap(const Map *map, QFileDevice *fileDevice)
 
 void GMapTextPlugin::writeTileLayer(const TileLayer *tileLayer, QFileDevice *fileDevice)
 {
-    // TODO Write the tile layer properties
+    // Write the tile layer properties
+    fileDevice->write("# TileLayer properties\n");
+    QString tileLayerName = QString("Name %1\n").arg(tileLayer->name());
+    fileDevice->write(tileLayerName.toLatin1().constData());
+
+    fileDevice->write("\n", 1);
 
     // Write the tiles
     for (int y = 0; y < tileLayer->height(); ++y) {
@@ -98,8 +121,6 @@ void GMapTextPlugin::writeTileLayer(const TileLayer *tileLayer, QFileDevice *fil
             const Tile *tile = cell.tile();
             const int id = tile ? tile->id() : -1;
             fileDevice->write(QByteArray::number(id));
-
-            // TODO Write the tile properties
         }
 
         fileDevice->write("\n", 1);
@@ -108,20 +129,49 @@ void GMapTextPlugin::writeTileLayer(const TileLayer *tileLayer, QFileDevice *fil
 
 void GMapTextPlugin::writeObjectGroup(const ObjectGroup *objectGroup, QFileDevice *fileDevice)
 {
-    // TODO Write the object group properties
+    // Write the object group properties
+    fileDevice->write("# ObjectGroup properties\n");
+    QString objectGroupName = QString("Name %1\n").arg(objectGroup->name());
+    fileDevice->write(objectGroupName.toLatin1().constData());
+
+    fileDevice->write("\n", 1);
 
     // Write the objects
-    for (const MapObject *object : objectGroup->objects()) {
-        QString objectName = QString("ObjectName %1\n").arg(object->name());
-        fileDevice->write(objectName.toLatin1().constData());
+    for (int i = 0; i < objectGroup->objects().count(); ++i) {
+        if (i > 0)
+            fileDevice->write("\n", 1);
 
-        // TODO Write the object properties
+        const MapObject *object = objectGroup->objectAt(i);
+        writeObject(object, fileDevice);
     }
+}
+
+void GMapTextPlugin::writeObject(const MapObject *object, QFileDevice *fileDevice)
+{
+    // Write the object properties
+    fileDevice->write("# Object properties\n");
+    QString objectName = QString("Name %1\n").arg(object->name());
+    fileDevice->write(objectName.toLatin1().constData());
+
+    QString objectType = QString("Type %1\n").arg(object->type());
+    fileDevice->write(objectType.toLatin1().constData());
+
+    QString objectPosition =
+            QString("Position %1 %2\n")
+            .arg(QString::number(object->x()), QString::number(object->y()));
+    fileDevice->write(objectPosition.toLatin1().constData());
+
+    QString objectSize =
+            QString("Size %1 %2\n")
+            .arg(QString::number(object->width()), QString::number(object->height()));
+    fileDevice->write(objectSize.toLatin1().constData());
+
+    // TODO Write the custom properties
 }
 
 QString GMapTextPlugin::nameFilter() const
 {
-    return tr("Griby map text files (*.gmt)");
+    return tr("GMap text files (*.gmt)");
 }
 
 QString GMapTextPlugin::shortName() const

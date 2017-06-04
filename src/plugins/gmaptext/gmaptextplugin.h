@@ -48,6 +48,7 @@ private:
     void writeMap(const Tiled::Map *map, QFileDevice *fileDevice);
     void writeTileLayer(const Tiled::TileLayer *tileLayer, QFileDevice *fileDevice);
     void writeObjectGroup(const Tiled::ObjectGroup *objectGroup, QFileDevice *fileDevice);
+    void writeObject(const Tiled::MapObject *object, QFileDevice *fileDevice);
 
     QString mError;
 };
